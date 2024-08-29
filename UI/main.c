@@ -8,7 +8,7 @@
 #define OLED_HEIGHT 64
 
 
-bool pixMap[OLED_WIDTH * OLED_HEIGHT]
+bool pixMap[OLED_WIDTH * OLED_HEIGHT];
 
 int main(void) {
   InitWindow(SCREEN_HEIGHT, SCREEN_HEIGHT,
@@ -21,7 +21,7 @@ int main(void) {
     BeginDrawing();
 
     ClearBackground(RAYWHITE);
-    DrawRectangle(0, 0, GetScreenWidth() / 2, 30, Fade(RAYWHITE, 0.6f));
+    DrawRectangle(0, 0, GetScreenWidth() / 2, 30, Fade(MAGENTA, 0.6f));
 
     // DrawText("Congrats! You created your first window!", 190, 200, 20,
     //          LIGHTGRAY);
