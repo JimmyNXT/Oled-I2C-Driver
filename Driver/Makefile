@@ -1,4 +1,4 @@
-obj-m += example.o
+obj-m += SH1106.o
  
 KDIR = /lib/modules/$(shell uname -r)/build
  
