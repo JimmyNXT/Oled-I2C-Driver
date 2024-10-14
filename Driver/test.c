@@ -1,6 +1,7 @@
 #include "SH1106.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,11 +14,11 @@ int main() {
   char buffer[BUFFER_LENGTH];
 
   for(int i = 0; i < sizeof(buffer); i++){
-     buffer[i] = 0x10;
+     buffer[i] = 0xAA;
    }
 
   fd = open("/dev/SH1106_DISPLAY", O_RDWR); // Open the device with read/write access
-  
+
   if (fd < 0) {
     perror("Failed to open the device...");
     return errno;
@@ -34,25 +35,19 @@ int main() {
 
   return 0;
 }
-//
-//
-//
-//
-// #include <stdio.h>
-// #include <stdlib.h>
-//
+
+
+
+
+
 // int main(){
-//   char buf[SH1106_LCDWIDTH * SH1106_LCDHEIGHT / 8];
+//   uint8_t mask = 0x01;
+//   uint8_t input = 0xAA;
 //
-//   for(int i = 0; i < sizeof(buf); i++){
-//     buf[i] = 0xAA;
+//   for (int i = 0; i < 8; i++) {
+//     printf("%d: %X\n", i, input & mask);
+//     input = input >> 1;
 //   }
-//
-//   FILE *fptr = fopen("/dev/SH1106_DISPLAY", "w");
-//   // fprintf(fptr, "%.*s", (int) sizeof(buf), buf);
-//   fprintf(fptr, "%s", "This is a test\0");
-//
-//   fclose(fptr);
 //
 //
 //   return 0;

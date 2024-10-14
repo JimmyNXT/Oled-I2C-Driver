@@ -12,21 +12,25 @@
 
 #define I2C_BUS_AVAILABLE (1)
 #define DEVICE_NAME ("SH1106_DISPLAY")
-#define CLASSNAME "SH1106"
+#define CLASSNAME "SH1106___"
 #define SH1106_ADDR (0x3C)
 static struct i2c_adapter *sh1106_adapter = NULL;
 static struct i2c_client *sh1106_client = NULL;
-static char buffer[SH1106_LCDWIDTH * SH1106_LCDHEIGHT / 8];
+static uint8_t buffer[(SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8];
 static int majourNumber;
 static struct device *SH1106_File_Device = NULL;
 static struct class *SH1106_File_Class = NULL;
 
 static void SH1106_Write_Buffer(void);
 
+static int getIndex(int x, int y){
+  int width = SH1106_LCDWIDTH;
+  return (width * y) + x;
+}
 
 static int SH1106_File_Open(struct inode * device_file, struct file * instance){
   printk("Driver file opened");
-  return 0; 0;
+  return 0;
 }
 
 static int SH1106_File_Close(struct inode * device_file, struct file * instance){
@@ -38,21 +42,60 @@ static ssize_t SH1106_File_Read(struct file *filep, char * bufferp, size_t len, 
   return 0;
 }
 
-static char flipBuffer(){
+static void flipBuffer(void){
+  bool tempBuf1[SH1106_LCDWIDTH * SH1106_LCDHEIGHT];
+  bool tempBuf2[SH1106_LCDWIDTH * SH1106_LCDHEIGHT];
 
+  int index = 0;
+  uint8_t mask = 0x01;
+
+  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i++) {
+    uint8_t currentChar = buffer[i];
+
+    for (int j = 0; j < 8; j++) {
+      uint8_t currentBit = currentChar & mask;
+      tempBuf1[index] = currentBit == 1;
+      currentChar = currentChar >> 1;
+      index = index + 1;
+    }
+  }
+
+  for (int x = 0; x < SH1106_LCDWIDTH; x = x + 8) {
+    for (int y = 0; y < SH1106_LCDHEIGHT; y = y + 8) {
+      for (int i = x; i < x + 8; i++) {
+        for (int j = y; j < y + 8; j ++) {
+          tempBuf2[getIndex(j,i)] = tempBuf1[getIndex(i, j)];
+        }
+      }
+    }
+  }
+
+  index = 0;
+
+  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i++) {
+    uint8_t current_char = 0x00;
+    for(int j = 0; j < 8; j++){
+      if(tempBuf2[index]){
+        current_char = current_char | mask;
+      }
+      current_char = current_char << 1;
+      index = index + 1;
+    }
+    buffer[i] = current_char;
+  }
 }
 
 static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_t len, loff_t *offset){
   printk("data recoeved");
 
-  if(len < sizeof(buffer)){
-    printk("Buffer written is of oncorrect length. %d %d", len, sizeof(buffer));
-    return 0; 0;
+  if(len < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8){
+    printk("Buffer written is of oncorrect length. %d %d", (int) len, (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8);
+    return 0;
   }
 
   copy_from_user(buffer, bufferp, sizeof(buffer));
 
-  flipBuffer();
+  // flipBuffer();
 
   SH1106_Write_Buffer();
 
@@ -69,16 +112,16 @@ static struct file_operations fops = {
 };
 
 
-static int I2C_Write(unsigned char *buf, unsigned int len) {
+static int I2C_Write(uint8_t *buf, unsigned int len) {
   return i2c_master_send(sh1106_client, buf, len);
 }
 
-static int I2C_Read(unsigned char *out_buf, unsigned int len) {
+static int I2C_Read(uint8_t *out_buf, unsigned int len) {
   return i2c_master_recv(sh1106_client, out_buf, len);
 }
 
-static void SH1106_Write(bool is_cmd, unsigned char data) {
-  unsigned char buf[3] = {0};
+static void SH1106_Write(bool is_cmd, uint8_t data) {
+  uint8_t buf[3] = {0};
 
   if (is_cmd == true)
     buf[0] = 0x00;
@@ -147,7 +190,7 @@ static void SH1106_Write_Buffer(void){
 
 }
 
-static void SH1106_Fill(unsigned char data) {
+static void SH1106_Fill(uint8_t data) {
   for (int i = 0; i < SH1106_LCDWIDTH * SH1106_LCDHEIGHT / 8; i++) {
     buffer[i] = data;
   }
