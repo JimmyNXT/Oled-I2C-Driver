@@ -1,18 +1,10 @@
 #include "SH1106.h"
+#include "SH1106_IOCTL.h"
 
-#include <linux/delay.h>
-#include <linux/i2c.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/slab.h>
-#include <linux/fs.h>
-#include <linux/ioctl.h>
-#include <linux/uaccess.h>
 
 #define I2C_BUS_AVAILABLE (1)
 #define DEVICE_NAME ("SH1106_DISPLAY")
-#define CLASSNAME "SH1106___"
+#define CLASSNAME "SH1106"
 #define SH1106_ADDR (0x3C)
 static struct i2c_adapter *sh1106_adapter = NULL;
 static struct i2c_client *sh1106_client = NULL;
@@ -21,7 +13,6 @@ static int majourNumber;
 static struct device *SH1106_File_Device = NULL;
 static struct class *SH1106_File_Class = NULL;
 
-static void SH1106_Write_Buffer(void);
 
 static int getIndex(int x, int y){
   int width = SH1106_LCDWIDTH;
@@ -62,9 +53,9 @@ static void flipBuffer(void){
 
   for (int x = 0; x < SH1106_LCDWIDTH; x = x + 8) {
     for (int y = 0; y < SH1106_LCDHEIGHT; y = y + 8) {
-      for (int i = x; i < x + 8; i++) {
-        for (int j = y; j < y + 8; j ++) {
-          tempBuf2[getIndex(j,i)] = tempBuf1[getIndex(i, j)];
+      for (int xoff = 0; xoff < 8; xoff++) {
+        for (int yoff = 0; yoff < 8; yoff++) {
+          tempBuf2[getIndex(x + xoff, y + yoff)] = tempBuf1[getIndex(x + yoff, y + xoff)];
         }
       }
     }
@@ -75,10 +66,10 @@ static void flipBuffer(void){
   for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i++) {
     uint8_t current_char = 0x00;
     for(int j = 0; j < 8; j++){
+      current_char = current_char << 1;
       if(tempBuf2[index]){
         current_char = current_char | mask;
       }
-      current_char = current_char << 1;
       index = index + 1;
     }
     buffer[i] = current_char;
@@ -95,9 +86,53 @@ static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_
 
   copy_from_user(buffer, bufferp, sizeof(buffer));
 
-  // flipBuffer();
+  flipBuffer();
 
   SH1106_Write_Buffer();
+
+  return 0;
+}
+
+static long int SH1106_ioctl(struct file *filep, unsigned cmd, unsigned long arg){
+  switch (cmd) {
+    case GET_WIDTH:
+      int32_t tempScreenWidth = SH1106_LCDWIDTH;
+      if(copy_to_user((int *) arg, &tempScreenWidth, sizeof(tempScreenWidth))){
+        printk("Failed to copy screen width to user.");
+      } else {
+        printk("Copied screen width of %d to user.", tempScreenWidth);
+      }
+      break;
+    case GET_HEIGHT:
+      int32_t tempScreenHeight = SH1106_LCDHEIGHT;
+      if(copy_to_user((int *) arg, &tempScreenHeight, sizeof(tempScreenHeight))){
+        printk("Failed to copy screen height to user.");
+      } else {
+        printk("Copied screen height of %d to user.", tempScreenHeight);
+      }
+      break;
+    case GET_SIZE:
+      struct screen_size tempScreenSize;
+      tempScreenSize.height = SH1106_LCDHEIGHT;
+      tempScreenSize.width = SH1106_LCDWIDTH;
+      if(copy_to_user((struct screen_size *) arg, &tempScreenSize, sizeof(tempScreenSize))){
+        printk("Failed to copy screen size to user.");
+      } else {
+        printk("Copied screen size to user.");
+      }
+      break;
+    case GET_BRIGHTNESS:
+      int32_t tempScreenBrightness = 0;
+      if(copy_to_user((int *) arg, &tempScreenBrightness, sizeof(tempScreenBrightness))){
+        printk("Failed to copy screen brightness to user.");
+      } else {
+        printk("Copied screen brightness of %d to user.", tempScreenBrightness);
+      }
+      break;
+    case SET_BRIGHTNESS:
+    break;
+
+  }
 
   return 0;
 }
@@ -108,7 +143,7 @@ static struct file_operations fops = {
   .release = SH1106_File_Close,
   .read = SH1106_File_Read,
   .write = SH1106_File_Write,
-  // .unlocked_ioctl = SH1106_ioctl,
+  .unlocked_ioctl = SH1106_ioctl,
 };
 
 

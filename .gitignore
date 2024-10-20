@@ -5,6 +5,7 @@
 *.o
 *.obj
 *.elf
+*.ko
 
 # Linker output
 *.ilk
@@ -51,3 +52,11 @@ Mkfile.old
 dkms.conf
 
 compile_commands.json
+
+~ch341-core.ko
+~gpio-ch341.ko
+~i2c-ch341.ko
+~spi-ch341.ko
+
+test
+main

@@ -1,3 +1,16 @@
+#ifndef SH1106_H
+#define SH1106_H
+
+#include <linux/delay.h>
+#include <linux/i2c.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/slab.h>
+#include <linux/fs.h>
+#include <linux/ioctl.h>
+#include <linux/uaccess.h>
+
 #define SH1106_LCDWIDTH 128
 #define SH1106_LCDHEIGHT 64
 #define SH1106_SETCONTRAST 0x81
@@ -32,3 +45,23 @@
 #define SH1106_LEFT_HORIZONTAL_SCROLL 0x27
 #define SH1106_VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL 0x29
 #define SH1106_VERTICAL_AND_LEFT_HORIZONTAL_SCROLL 0x2A
+
+static void SH1106_Write_Buffer(void);
+static int SH1106_File_Open(struct inode * device_file, struct file * instance);
+static int SH1106_File_Close(struct inode * device_file, struct file * instance);
+static ssize_t SH1106_File_Read(struct file *filep, char * bufferp, size_t len, loff_t *offset);
+static long int SH1106_ioctl(struct file *filep, unsigned cmd, unsigned long arg);
+static void flipBuffer(void);
+static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_t len, loff_t *offset);
+static int I2C_Write(uint8_t *buf, unsigned int len);
+static int I2C_Read(uint8_t *out_buf, unsigned int len);
+static void SH1106_Write(bool is_cmd, uint8_t data);
+static int SH1106_DisplayInit(void);
+static void SH1106_Write_Buffer(void);
+static void SH1106_Fill(uint8_t data);
+static int sh1106_probe(struct i2c_client *client);
+static void sh1106_remove(struct i2c_client *client);
+static int __init sh1106_driver_init(void);
+static void __exit sh1106_driver_exit(void);
+
+#endif // !SH1106_H

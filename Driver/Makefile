@@ -8,3 +8,9 @@ all:
  
 clean:
 	make -C $(KDIR)  M=$(shell pwd) clean
+
+install: all
+	insmod SH1106.ko
+
+uninstall:
+	rmmod SH1106

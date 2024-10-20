@@ -1,46 +1,48 @@
 #include <raylib.h>
 #include <math.h>
 #include <stdbool.h>
-#include "../Driver/SH1106.h"
+#include "../Driver/SH1106_IOCTL.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <strings.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
-#define SCREEN_WIDTH SH1106_LCDWIDTH
-#define SCREEN_HEIGHT SH1106_LCDHEIGHT
 #define PIXEL_SIZE 5
-#define BUFFER_LENGTH SH1106_LCDWIDTH * SH1106_LCDHEIGHT / 8 
 
-bool pix_map[SCREEN_WIDTH * SCREEN_HEIGHT];
+int screen_width = 0;
+int screen_height = 0;
+int buffer_length = 0;
 
-void reset_Screen() {
-  for (int i = 0; i < SCREEN_WIDTH * SCREEN_HEIGHT; i++) {
-    pix_map[i] = false;
-  }
-}
 
-int xyToIndex(int x, int y) { return x + (y * SCREEN_WIDTH); }
+int xyToIndex(int x, int y) { return x + (y * screen_width); }
 
 int main(void) {
+  int device_file = open("/dev/SH1106_DISPLAY", O_RDWR);
+
+  if (device_file < 0) {
+    printf("Failed to open the device file...");
+    return errno;
+  }
+
+  ioctl(device_file, GET_WIDTH, &screen_width);
+  printf("Width: %d\n", screen_width);
+  ioctl(device_file, GET_HEIGHT, &screen_height);
+  printf("Height: %d\n", screen_height);
+
+  buffer_length = (screen_width * screen_height) / 8;
+
+  bool pix_map[screen_width * screen_height];
+
   Vector2 mousePosition;
   int prevMouseX = -1;
   int prevMouseY = -1;
-
-  reset_Screen();
-
-  InitWindow(SCREEN_WIDTH * PIXEL_SIZE, SCREEN_HEIGHT * PIXEL_SIZE, "OLED Draw");
-  
-  int fd;
-
-  fd = open("/dev/SH1106_DISPLAY", O_RDWR); // Open the device with read/write access
-
-  if (fd < 0) {
-    perror("Failed to open the device...");
-    return errno;
+  for (int i = 0; i < (screen_width * screen_height); i++) {
+    pix_map[i] = false;
   }
+  InitWindow(screen_width * PIXEL_SIZE, screen_height * PIXEL_SIZE, "OLED Draw");
 
   SetTargetFPS(60);
 
@@ -50,8 +52,8 @@ int main(void) {
 
     ClearBackground(RAYWHITE);
 
-    for (int i = 0; i < SCREEN_WIDTH; i += 1) {
-      for (int j = 0; j < SCREEN_HEIGHT; j += 1) {
+    for (int i = 0; i < screen_width; i += 1) {
+      for (int j = 0; j < screen_height; j += 1) {
         Color c;
         if (pix_map[xyToIndex(i, j)]) {
           c = WHITE;
@@ -76,15 +78,30 @@ int main(void) {
     }
 
     int index = 0;
-    uint8_t buffer[BUFFER_LENGTH];
+    bool temp_pix_map[screen_width * screen_height];
+    uint8_t buffer[buffer_length];
     uint8_t mask = 0x01;
 
+    // for (int i = 0; i < (screen_height * screen_width); i++) {
+    //   temp_pix_map[i] = false;
+    // }
 
-    for (int i = 0; i < BUFFER_LENGTH; i = i + 1) {
+
+    for(int i = 0; i < screen_width; i = i + 8){
+      for(int j = 0; j < screen_height; j = j + 8) {
+        for(int x = i; x < i + 8; x++){
+          for(int y = j; y < j + 8; y++){
+            temp_pix_map[xyToIndex(x, y)] = pix_map[xyToIndex(y, x)];
+          }
+        }
+      }
+    }
+
+    for (int i = 0; i < buffer_length; i = i + 1) {
       uint8_t c = 0x00;
 
-      for (int j = 0; j < 8; j = j + 1) {
-        if(pix_map[index]){
+      for (int j = 0; j < 8; j++) {
+        if(temp_pix_map[index]){
           c = c | mask;
         }
         index = index + 1;
@@ -92,14 +109,16 @@ int main(void) {
       }
       buffer[i] = c; 
     }
-    int ret = write(fd, buffer, BUFFER_LENGTH);
+    int ret = write(device_file, buffer, buffer_length);
 
     if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)){
-      reset_Screen();
+      for (int i = 0; i < screen_width * screen_width; i++) {
+        pix_map[i] = false;
+      }
     }
   }
 
-  close(fd);
+  close(device_file);
 
   CloseWindow();
   return 0;
