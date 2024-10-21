@@ -14,10 +14,7 @@ static struct device *SH1106_File_Device = NULL;
 static struct class *SH1106_File_Class = NULL;
 
 
-static int getIndex(int x, int y){
-  int width = SH1106_LCDWIDTH;
-  return (width * y) + x;
-}
+static int xyToIndex(int x, int y, int w) { return x + (y * w); }
 
 static int SH1106_File_Open(struct inode * device_file, struct file * instance){
   printk("Driver file opened");
@@ -34,45 +31,52 @@ static ssize_t SH1106_File_Read(struct file *filep, char * bufferp, size_t len, 
 }
 
 static void flipBuffer(void){
-  bool tempBuf1[SH1106_LCDWIDTH * SH1106_LCDHEIGHT];
-  bool tempBuf2[SH1106_LCDWIDTH * SH1106_LCDHEIGHT];
+  bool bool_buffer[8 * 8];
+  bool temp_bool_buffer[8 * 8];
 
+  for (int i = 0; i < (8 * 8); i++) {
+    bool_buffer[i] = false;
+    temp_bool_buffer[i] = false;
+  }
+  
   int index = 0;
   uint8_t mask = 0x01;
 
-  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i++) {
-    uint8_t currentChar = buffer[i];
+  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i = i + 8) {
+    index = 0;
 
     for (int j = 0; j < 8; j++) {
-      uint8_t currentBit = currentChar & mask;
-      tempBuf1[index] = currentBit == 1;
-      currentChar = currentChar >> 1;
-      index = index + 1;
-    }
-  }
+      uint8_t c = buffer[i+j];
 
-  for (int x = 0; x < SH1106_LCDWIDTH; x = x + 8) {
-    for (int y = 0; y < SH1106_LCDHEIGHT; y = y + 8) {
-      for (int xoff = 0; xoff < 8; xoff++) {
-        for (int yoff = 0; yoff < 8; yoff++) {
-          tempBuf2[getIndex(x + xoff, y + yoff)] = tempBuf1[getIndex(x + yoff, y + xoff)];
+      for (int k = 0; k < 8; k++) {
+        uint8_t temp_c = c & mask;
+        if(temp_c == 0x01){
+          bool_buffer[index] = true;
+        }
+        c = c >> 1;
+        index++;
+      }
+    }
+
+    for (int x = 0; x < 8; x++) {
+      for (int y = 0; y < 8; y++) {
+        temp_bool_buffer[xyToIndex(x, y, 8)] = bool_buffer[xyToIndex(x, y, 8)];
+      }
+    }
+
+    index = 0;
+
+    for (int x = 0; x < 8; x++) {
+      uint8_t c = 0x00;
+
+      for (int y = 0; y < 8; y++) {
+        c = c << 1;
+        if(temp_bool_buffer[xyToIndex(x, y, 8)]){
+          c = c | mask;
         }
       }
+      buffer[i + x] = c;
     }
-  }
-
-  index = 0;
-
-  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i++) {
-    uint8_t current_char = 0x00;
-    for(int j = 0; j < 8; j++){
-      current_char = current_char << 1;
-      if(tempBuf2[index]){
-        current_char = current_char | mask;
-      }
-      index = index + 1;
-    }
-    buffer[i] = current_char;
   }
 }
 
@@ -84,7 +88,7 @@ static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_
     return 0;
   }
 
-  copy_from_user(buffer, bufferp, sizeof(buffer));
+  copy_from_user(buffer, bufferp, (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8);
 
   // flipBuffer();
 

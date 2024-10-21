@@ -46,6 +46,7 @@ int main(void) {
 
   SetTargetFPS(60);
 
+  int frame_count = 0;
   while (!WindowShouldClose()) {
     mousePosition = GetMousePosition();
     BeginDrawing();
@@ -76,46 +77,34 @@ int main(void) {
       prevMouseX = mousex;
       prevMouseY = mousey;
     }
+    if(frame_count%10 == 0){
+      frame_count = 0;
 
-    int index = 0;
-    bool temp_pix_map[screen_width * screen_height];
-    uint8_t buffer[buffer_length];
-    uint8_t mask = 0x01;
+      int index = 0;
+      uint8_t buffer[buffer_length];
+      uint8_t mask = 0x01;
 
-    // for (int i = 0; i < (screen_height * screen_width); i++) {
-    //   temp_pix_map[i] = false;
-    // }
+      for (int i = 0; i < buffer_length; i++) {
+        uint8_t c = 0x00;
 
-
-    for(int i = 0; i < screen_width; i = i + 8){
-      for(int j = 0; j < screen_height; j = j + 8) {
-        for(int x = i; x < i + 8; x++){
-          for(int y = j; y < j + 8; y++){
-            temp_pix_map[xyToIndex(x, y)] = pix_map[xyToIndex(y, x)];
+        for (int j = 0; j < 8; j++) {
+          c = c << 1;
+          if(pix_map[index]){
+            c = c | mask;
           }
+          index = index + 1;
         }
+        buffer[i] = c; 
       }
+      int ret = write(device_file, buffer, buffer_length);
     }
-
-    for (int i = 0; i < buffer_length; i = i + 1) {
-      uint8_t c = 0x00;
-
-      for (int j = 0; j < 8; j++) {
-        if(temp_pix_map[index]){
-          c = c | mask;
-        }
-        index = index + 1;
-        c = c << 1;
-      }
-      buffer[i] = c; 
-    }
-    int ret = write(device_file, buffer, buffer_length);
 
     if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)){
       for (int i = 0; i < screen_width * screen_width; i++) {
         pix_map[i] = false;
       }
     }
+    frame_count++;
   }
 
   close(device_file);
