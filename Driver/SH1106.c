@@ -77,7 +77,7 @@ static void flipBuffer(void){
 }
 
 static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_t len, loff_t *offset){
-  printk("data recoeved");
+  printk("data recieved");
 
   if(len < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8){
     printk("Buffer written is of oncorrect length. %d %d", (int) len, (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8);
@@ -86,7 +86,7 @@ static ssize_t SH1106_File_Write(struct file * filep, const char *bufferp, size_
 
   copy_from_user(buffer, bufferp, sizeof(buffer));
 
-  flipBuffer();
+  // flipBuffer();
 
   SH1106_Write_Buffer();
 

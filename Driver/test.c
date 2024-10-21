@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 
-int xyToIndex(int x, int y) { return x + (y * 128); }
+int xyToIndex(int x, int y, int w) { return x + (y * w); }
 // int main() {
 //   int ret, fd, ans;
 //   struct screen_size pScreenSize;
@@ -54,82 +54,57 @@ int main() {
   uint8_t buffer[buffer_length];
 
   for(int i = 0; i < buffer_length; i++){
-     buffer[i] = 0xAA;
+    buffer[i] = 0x55;
   }
 
-  bool bool_buffer[width * height];
-  bool temp_bool_buffer[width * height];
+  bool bool_buffer[8 * 8];
+  bool temp_bool_buffer[8 * 8];
 
-  for (int i = 0; i < (width * height); i++) {
+  for (int i = 0; i < (8 * 8); i++) {
     bool_buffer[i] = false;
     temp_bool_buffer[i] = false;
   }
-
+  
   int index = 0;
   uint8_t mask = 0x01;
 
-  for (int i = 0; i < buffer_length; i++) {
-    uint8_t c = buffer[i];
+  for (int i = 0; i < buffer_length; i = i + 8) {
+    index = 0;
 
     for (int j = 0; j < 8; j++) {
-      uint8_t temp_c = c & mask;
-      if(temp_c == 0x01){
-        bool_buffer[index] = true;
-      }
-      c = c >> 1;
-      index++;
-    }
-  }
+      uint8_t c = buffer[i+j];
 
-  for (int x = 0; x < 16; x++) {
-    for (int y = 0; y < 16; y++) {
-      if(bool_buffer[xyToIndex(x, y)]){
-        printf("1 ");
-      } else {
-        printf("0 ");
+      for (int k = 0; k < 8; k++) {
+        uint8_t temp_c = c & mask;
+        if(temp_c == 0x01){
+          bool_buffer[index] = true;
+        }
+        c = c >> 1;
+        index++;
       }
     }
-    printf("\n");
-  }
 
-  for (int x = 0; x < width; x = x + 8) {
-    for (int y = 0; y < height; y = y + 8) {
-      for (int xoff = 0; xoff < 8; xoff++) {
-        for (int yoff = 0; yoff < 8; yoff++) {
-          temp_bool_buffer[xyToIndex(x + xoff, y + yoff)] = bool_buffer[xyToIndex(x + yoff, y + xoff)];
+    for (int x = 0; x < 8; x++) {
+      for (int y = 0; y < 8; y++) {
+        temp_bool_buffer[xyToIndex(x, y, 8)] = bool_buffer[xyToIndex(x, y, 8)];
+      }
+    }
+
+    index = 0;
+
+    for (int x = 0; x < 8; x++) {
+      uint8_t c = 0x00;
+
+      for (int y = 0; y < 8; y++) {
+        c = c << 1;
+        if(temp_bool_buffer[xyToIndex(x, y, 8)]){
+          c = c | mask;
         }
       }
+      buffer[i + x] = c;
     }
   }
 
-  index = 0;
-
-  for (int i = 0; i < buffer_length; i++) {
-    uint8_t c = 0x00;
-    for (int j = 0; j < 8; j++) {
-      c = c << 1;
-      if(bool_buffer[index]){
-        c = c | mask;
-      }
-      index++;
-    }
-    buffer[i] = c;
-  }
-  printf("\n");
-
-  for (int x = 0; x < 16; x++) {
-    for (int y = 0; y < 16; y++) {
-      if(temp_bool_buffer[xyToIndex(x, y)]){
-        printf("1 ");
-      } else {
-        printf("0 ");
-      }
-    }
-    printf("\n");
-  }
-
-
- 
   ret = write(fd, buffer, buffer_length);
 
   printf("%d", buffer_length);
@@ -139,7 +114,7 @@ int main() {
     return errno;
   }
 
-  close(fd);
+  // close(fd);
 
   return 0;
 }
