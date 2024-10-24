@@ -1,5 +1,5 @@
 // #include "SH1106.h"
-#include "SH1106_IOCTL.h"
+#include "../Driver/SH1106_IOCTL.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
