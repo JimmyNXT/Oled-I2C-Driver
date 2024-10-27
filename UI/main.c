@@ -1,14 +1,14 @@
-#include <raylib.h>
-#include <math.h>
-#include <stdbool.h>
 #include "../Driver/SH1106_IOCTL.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
+#include <raylib.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <strings.h>
-#include <unistd.h>
 #include <sys/ioctl.h>
+#include <unistd.h>
 
 #define PIXEL_SIZE 5
 
@@ -16,11 +16,14 @@ int screen_width = 0;
 int screen_height = 0;
 int buffer_length = 0;
 
-
 int xyToIndex(int x, int y) { return x + (y * screen_width); }
 
 int main(void) {
   int device_file = open("/dev/SH1106_DISPLAY", O_RDWR);
+  int index = 0;
+  uint8_t buffer[buffer_length];
+  uint8_t mask = 0x01;
+  uint8_t c = 0x00;
 
   if (device_file < 0) {
     printf("Failed to open the device file...");
@@ -42,7 +45,13 @@ int main(void) {
   for (int i = 0; i < (screen_width * screen_height); i++) {
     pix_map[i] = false;
   }
-  InitWindow(screen_width * PIXEL_SIZE, screen_height * PIXEL_SIZE, "OLED Draw");
+  for (int i = 0; i < screen_width; i++) {
+    for (int j = 0; j < 16; j = j + 2) {
+      pix_map[xyToIndex(i, j)] = true;
+    }
+  }
+  InitWindow(screen_width * PIXEL_SIZE, screen_height * PIXEL_SIZE,
+             "OLED Draw");
 
   SetTargetFPS(60);
 
@@ -77,29 +86,40 @@ int main(void) {
       prevMouseX = mousex;
       prevMouseY = mousey;
     }
-    if(frame_count%10 == 0){
+    if (frame_count % 10 == 0) {
       frame_count = 0;
 
-      int index = 0;
-      uint8_t buffer[buffer_length];
-      uint8_t mask = 0x01;
-
-      for (int i = 0; i < buffer_length; i++) {
-        uint8_t c = 0x00;
-
-        for (int j = 0; j < 8; j++) {
-          c = c << 1;
-          if(pix_map[index]){
-            c = c | mask;
+      index = 0;
+      for (int i = 0; i < 8; i++) {
+        for (int j = 0; j < screen_width; j++) {
+          c = 0x00;
+          for (int k = 0; k < 8; k++) {
+            c = c << 1;
+            if (pix_map[xyToIndex(j, i + k)]) {
+              c = c | mask;
+            }
           }
-          index = index + 1;
+          buffer[index] = c;
+          index++;
         }
-        buffer[i] = c; 
       }
+
+      // for (int i = 0; i < buffer_length; i++) {
+      //   uint8_t c = 0x00;
+      //
+      //   for (int j = 0; j < 8; j++) {
+      //     c = c << 1;
+      //     if(pix_map[index]){
+      //       c = c | mask;
+      //     }
+      //     index = index + 1;
+      //   }
+      //   buffer[i] = c;
+      // }
       int ret = write(device_file, buffer, buffer_length);
     }
 
-    if(IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)){
+    if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
       for (int i = 0; i < screen_width * screen_width; i++) {
         pix_map[i] = false;
       }

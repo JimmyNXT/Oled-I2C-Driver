@@ -185,7 +185,7 @@ static int SH1106_DisplayInit(void) {
   SH1106_Write(true, SH1106_CHARGEPUMP);
   SH1106_Write(true, 0x14);
   SH1106_Write(true, SH1106_MEMORYMODE);
-  SH1106_Write(true, 0x00);
+  SH1106_Write(true, 0x01);
   SH1106_Write(true, SH1106_SEGREMAP | 0x1);
   SH1106_Write(true, SH1106_COMSCANDEC);
   SH1106_Write(true, SH1106_SETCOMPINS);
