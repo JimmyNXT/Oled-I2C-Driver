@@ -20,8 +20,7 @@ int xyToIndex(int x, int y, int w) { return x + (y * w); }
 
 int main(void) {
   int device_file = open("/dev/SH1106_DISPLAY", O_RDWR);
-  int index = 0;
-  uint8_t buffer[buffer_length];
+  // int index = 0;
   uint8_t mask = 0x01;
   uint8_t c = 0x00;
 
@@ -37,6 +36,7 @@ int main(void) {
 
   buffer_length = (screen_width * screen_height) / 8;
 
+  uint8_t buffer[buffer_length];
   bool pix_map[screen_width][screen_height];
 
   Vector2 mousePosition;
@@ -48,11 +48,6 @@ int main(void) {
     }
   }
 
-  for (int i = 0; i < screen_width; i++) {
-    for (int j = 0; j < 8; j = j + 2) {
-      pix_map[i][j] = true;
-    }
-  }
   InitWindow(screen_width * PIXEL_SIZE, screen_height * PIXEL_SIZE,
              "OLED Draw");
 
@@ -92,33 +87,21 @@ int main(void) {
     if (frame_count % 10 == 0) {
       frame_count = 0;
 
-      index = 0;
+      int index = 0;
       for (int i = 0; i < 8; i++) {
         for (int j = 0; j < screen_width; j++) {
           c = 0x00;
-          for (int k = 0; k < 8; k++) {
-            c = c << 1;
-            if (pix_map[j][i + k]) {
+          for (int k = 7; k >= 0; k--) {
+            if (pix_map[j][(8 * i) + k]) {
               c = c | mask;
             }
+            c = c << 1;
           }
           buffer[index] = c;
-          index++;
+          index = index + 1;
         }
       }
 
-      // for (int i = 0; i < buffer_length; i++) {
-      //   uint8_t c = 0x00;
-      //
-      //   for (int j = 0; j < 8; j++) {
-      //     c = c << 1;
-      //     if(pix_map[index]){
-      //       c = c | mask;
-      //     }
-      //     index = index + 1;
-      //   }
-      //   buffer[i] = c;
-      // }
       int ret = write(device_file, buffer, buffer_length);
     }
 

@@ -30,51 +30,37 @@ static ssize_t SH1106_File_Read(struct file *filep, char *bufferp, size_t len,
 }
 
 static void flipBuffer(void) {
-  bool bool_buffer[8 * 8];
-  bool temp_bool_buffer[8 * 8];
-
-  for (int i = 0; i < (8 * 8); i++) {
-    bool_buffer[i] = false;
-    temp_bool_buffer[i] = false;
-  }
+  bool D2_bool_buffer[SH1106_LCDWIDTH][SH1106_LCDHEIGHT];
 
   int index = 0;
   uint8_t mask = 0x01;
+  int ix = 0;
 
-  for (int i = 0; i < (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8; i = i + 8) {
-    index = 0;
-
-    for (int j = 0; j < 8; j++) {
-      uint8_t c = buffer[i + j];
-
+  for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
+    ix = 0;
+    for (int x = 0; x < SH1106_LCDWIDTH / 8; x++) {
+      uint8_t c = buffer[x + (y * (SH1106_LCDWIDTH / 8))];
       for (int k = 0; k < 8; k++) {
         uint8_t temp_c = c & mask;
-        if (temp_c == 0x01) {
-          bool_buffer[index] = true;
-        }
+        D2_bool_buffer[ix][y] = temp_c == 0x01;
         c = c >> 1;
-        index++;
+        ix = ix + 1;
       }
     }
+  }
 
-    for (int x = 0; x < 8; x++) {
-      for (int y = 0; y < 8; y++) {
-        temp_bool_buffer[xyToIndex(x, y, 8)] = bool_buffer[xyToIndex(x, y, 8)];
-      }
-    }
-
-    index = 0;
-
-    for (int x = 0; x < 8; x++) {
+  index = 0;
+  for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < SH1106_LCDWIDTH; j++) {
       uint8_t c = 0x00;
-
-      for (int y = 0; y < 8; y++) {
-        c = c << 1;
-        if (temp_bool_buffer[xyToIndex(x, y, 8)]) {
+      for (int k = 7; k >= 0; k--) {
+        if (D2_bool_buffer[j][(8 * i) + k]) {
           c = c | mask;
         }
+        c = c << 1;
       }
-      buffer[i + x] = c;
+      buffer[index] = c;
+      index = index + 1;
     }
   }
 }
@@ -206,7 +192,7 @@ static int SH1106_DisplayInit(void) {
   SH1106_Write(true, SH1106_CHARGEPUMP);
   SH1106_Write(true, 0x14);
   SH1106_Write(true, SH1106_MEMORYMODE);
-  SH1106_Write(true, 0x00);
+  SH1106_Write(true, 0x01);
   SH1106_Write(true, SH1106_SEGREMAP | 0x1);
   SH1106_Write(true, SH1106_COMSCANDEC);
   SH1106_Write(true, SH1106_SETCOMPINS);
