@@ -16,7 +16,7 @@ int screen_width = 0;
 int screen_height = 0;
 int buffer_length = 0;
 
-int xyToIndex(int x, int y) { return x + (y * screen_width); }
+int xyToIndex(int x, int y, int w) { return x + (y * w); }
 
 int main(void) {
   int device_file = open("/dev/SH1106_DISPLAY", O_RDWR);
@@ -37,17 +37,20 @@ int main(void) {
 
   buffer_length = (screen_width * screen_height) / 8;
 
-  bool pix_map[screen_width * screen_height];
+  bool pix_map[screen_width][screen_height];
 
   Vector2 mousePosition;
   int prevMouseX = -1;
   int prevMouseY = -1;
-  for (int i = 0; i < (screen_width * screen_height); i++) {
-    pix_map[i] = false;
+  for (int x = 0; x < screen_width; x++) {
+    for (int y = 0; y < screen_height; y++) {
+      pix_map[x][y] = false;
+    }
   }
+
   for (int i = 0; i < screen_width; i++) {
-    for (int j = 0; j < 16; j = j + 2) {
-      pix_map[xyToIndex(i, j)] = true;
+    for (int j = 0; j < 8; j = j + 2) {
+      pix_map[i][j] = true;
     }
   }
   InitWindow(screen_width * PIXEL_SIZE, screen_height * PIXEL_SIZE,
@@ -62,15 +65,15 @@ int main(void) {
 
     ClearBackground(RAYWHITE);
 
-    for (int i = 0; i < screen_width; i += 1) {
-      for (int j = 0; j < screen_height; j += 1) {
+    for (int x = 0; x < screen_width; x++) {
+      for (int y = 0; y < screen_height; y++) {
         Color c;
-        if (pix_map[xyToIndex(i, j)]) {
+        if (pix_map[x][y]) {
           c = WHITE;
         } else {
           c = BLACK;
         }
-        DrawRectangle(i * PIXEL_SIZE, j * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE,
+        DrawRectangle(x * PIXEL_SIZE, y * PIXEL_SIZE, PIXEL_SIZE, PIXEL_SIZE,
                       c);
       }
     }
@@ -81,7 +84,7 @@ int main(void) {
       int mousex = floor(mousePosition.x / PIXEL_SIZE);
       int mousey = floor(mousePosition.y / PIXEL_SIZE);
 
-      pix_map[xyToIndex(mousex, mousey)] = true;
+      pix_map[mousex][mousey] = true;
 
       prevMouseX = mousex;
       prevMouseY = mousey;
@@ -95,7 +98,7 @@ int main(void) {
           c = 0x00;
           for (int k = 0; k < 8; k++) {
             c = c << 1;
-            if (pix_map[xyToIndex(j, i + k)]) {
+            if (pix_map[j][i + k]) {
               c = c | mask;
             }
           }
@@ -120,8 +123,10 @@ int main(void) {
     }
 
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
-      for (int i = 0; i < screen_width * screen_width; i++) {
-        pix_map[i] = false;
+      for (int x = 0; x < screen_width; x++) {
+        for (int y = 0; y < screen_height; y++) {
+          pix_map[x][y] = false;
+        }
       }
     }
     frame_count++;
