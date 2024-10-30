@@ -24,38 +24,44 @@ int main() {
 
   buffer_length = width * height / 8;
   //
-  // uint8_t buffer[buffer_length];
+  uint8_t buffer[buffer_length]; 
   //
-  // for (int i = 0; i < buffer_length; i++) {
-  //   buffer[i] = 0xFF;
-  // }
-  //
-  // ret = write(fd, buffer, buffer_length);
+  for (int i = 0; i < buffer_length; i++) {
+    buffer[i] = 0xFF;
+  }
+
+  ret = write(fd, buffer, buffer_length);
 
   // printf("%d", buffer_length);
-  int contrast = 300;
+  // int contrast = 300;
+  //
+  // ioctl(fd, GET_CONTRAST, &contrast);
+  //
+  // printf("%d\n", contrast);
+  //
+  // contrast = 200;
+  //
+  // ioctl(fd, SET_CONTRAST, &contrast);
+  //
+  // ioctl(fd, GET_CONTRAST, &contrast);
+  //
+  // printf("%d\n", contrast);
 
-  ioctl(fd, GET_CONTRAST, &contrast);
+  read(fd, &buffer, buffer_length);
 
-  printf("%d\n", contrast);
-
-  contrast = 200;
-
-  ioctl(fd, SET_CONTRAST, &contrast);
-
-  ioctl(fd, GET_CONTRAST, &contrast);
-
-  printf("%d\n", contrast);
+  for (int i = 0; i < buffer_length; i++) {
+    printf("%d\n", buffer[i]);
+  }
 
   struct set_pixel pixelData;
   pixelData.colour = 0;
 
-  for (int i = 0; i < height; i++) {
-    pixelData.x = i;
-    pixelData.y = i;
-    ioctl(fd, SET_PIXEL, &pixelData);
-  }
-
+  // for (int i = 0; i < height; i++) {
+  //   pixelData.x = i;
+  //   pixelData.y = i;
+  //   ioctl(fd, SET_PIXEL, &pixelData);
+  // }
+  //
   if (ret < 0) {
     perror("Failed to write the message to the device.");
     return errno;
