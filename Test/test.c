@@ -19,10 +19,10 @@ int main() {
     perror("Failed to open the device...");
     return errno;
   }
-  // ioctl(fd, GET_WIDTH, &width);
-  // ioctl(fd, GET_HEIGHT, &height);
-  //
-  // buffer_length = width * height / 8;
+  ioctl(fd, GET_WIDTH, &width);
+  ioctl(fd, GET_HEIGHT, &height);
+
+  buffer_length = width * height / 8;
   //
   // uint8_t buffer[buffer_length];
   //
@@ -32,12 +32,29 @@ int main() {
   //
   // ret = write(fd, buffer, buffer_length);
 
+  // printf("%d", buffer_length);
+  int contrast = 300;
 
+  ioctl(fd, GET_CONTRAST, &contrast);
 
-   // printf("%d", buffer_length);
-  int contrast = 10;
+  printf("%d\n", contrast);
+
+  contrast = 200;
 
   ioctl(fd, SET_CONTRAST, &contrast);
+
+  ioctl(fd, GET_CONTRAST, &contrast);
+
+  printf("%d\n", contrast);
+
+  struct set_pixel pixelData;
+  pixelData.colour = 0;
+
+  for (int i = 0; i < height; i++) {
+    pixelData.x = i;
+    pixelData.y = i;
+    ioctl(fd, SET_PIXEL, &pixelData);
+  }
 
   if (ret < 0) {
     perror("Failed to write the message to the device.");

@@ -88,6 +88,7 @@ static ssize_t SH1106_File_Write(struct file *filep, const char *bufferp,
 
 static long int SH1106_ioctl(struct file *filep, unsigned cmd,
                              unsigned long arg) {
+  int temp_contrast = (int)contrast;
   switch (cmd) {
   case GET_WIDTH:
     int32_t tempScreenWidth = SH1106_LCDWIDTH;
@@ -117,22 +118,23 @@ static long int SH1106_ioctl(struct file *filep, unsigned cmd,
     }
     break;
   case GET_CONTRAST:
-    if (copy_to_user((uint8_t *)arg, &contrast, sizeof(contrast))) {
+    if (copy_to_user((int *)arg, &temp_contrast, sizeof(temp_contrast))) {
       printk("Failed to copy contrast to user.");
     } else {
-      printk("Copied contrast of %d to user.", contrast);
+      printk("Copied contrast of %d to user.", temp_contrast);
     }
     break;
   case SET_CONTRAST:
-    int temp_contrast = 0;
     if (copy_from_user(&temp_contrast, (int *)arg, sizeof(temp_contrast))) {
       printk("Failed to read contrast from user.");
     } else {
       printk("Recieved contrast of %d from user.", temp_contrast);
-      if (temp_contrast >= 0 &&temp_contrast <= 255) {
+      if (temp_contrast >= 0 && temp_contrast <= 255) {
         contrast = temp_contrast;
         SH1106_Write(true, SH1106_SETCONTRAST);
         SH1106_Write(true, contrast);
+      } else {
+        printk("User provided a contrast that is to large.");
       }
     }
     break;
@@ -145,6 +147,30 @@ static long int SH1106_ioctl(struct file *filep, unsigned cmd,
       printk("Recieved the following pixel data from user: x-> %d, y-> %d, "
              "colour-> %d",
              pixelData.x, pixelData.y, pixelData.colour);
+
+      if (pixelData.x > 0 && pixelData.x < SH1106_LCDWIDTH) {
+        if (pixelData.y > 0 && pixelData.y < SH1106_LCDHEIGHT) {
+          if (pixelData.colour == 0) {
+            buffer[pixelData.x + (pixelData.y / 8) * SH1106_LCDWIDTH] &=
+                ~(1 << (pixelData.y & 7));
+          } else {
+            buffer[pixelData.x + (pixelData.y / 8) * SH1106_LCDWIDTH] |=
+                (1 << (pixelData.y & 7));
+          }
+          uint8_t x = (uint8_t)pixelData.x;
+          uint8_t y = (uint8_t)(pixelData.y / 8);
+          SH1106_Write(true, SH1106_SETPAGEADDRESS + y);
+          SH1106_Write(true, SH1106_SETLOWCOLUMN | x & 0xf);
+          SH1106_Write(true, SH1106_SETHIGHCOLUMN | (x >> 4));
+          uint8_t temp_buffer[2] = {
+              0x40, buffer[pixelData.x + (pixelData.y / 8) * SH1106_LCDWIDTH]};
+          I2C_Write(temp_buffer, 2);
+        } else {
+          printk("User provided an y coordinate outside of screen.");
+        }
+      } else {
+        printk("User provided an x coordinate outside of screen.");
+      }
 
       // int x, y, colour = 0;
       //

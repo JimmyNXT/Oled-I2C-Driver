@@ -23,6 +23,8 @@ int main(void) {
   // int index = 0;
   uint8_t mask = 0x01;
   uint8_t c = 0x00;
+  struct set_pixel pixelData;
+  pixelData.colour = 1;
 
   if (device_file < 0) {
     printf("Failed to open the device file...");
@@ -80,28 +82,32 @@ int main(void) {
       int mousey = floor(mousePosition.y / PIXEL_SIZE);
 
       pix_map[xyToIndex(mousex, mousey, screen_width)] = true;
+      pixelData.x = mousex;
+      pixelData.y = mousey;
+
+      ioctl(device_file, SET_PIXEL, &pixelData);
 
       prevMouseX = mousex;
       prevMouseY = mousey;
     }
-    if (frame_count % 10 == 0) {
-      frame_count = 0;
-
-      int index = 0;
-      for (int i = 0; i < screen_width * screen_height; i = i + 8) {
-        c = 0x00;
-        for (int j = 0; j < 8; j++) {
-          c = c << 1;
-          if (pix_map[i+j]) {
-            c = c | mask;
-          }
-        }
-        buffer[index] = c;
-        index = index + 1;
-      }
-
-      int ret = write(device_file, buffer, buffer_length);
-    }
+    // if (frame_count % 10 == 0) {
+    //   frame_count = 0;
+    //
+    //   int index = 0;
+    //   for (int i = 0; i < screen_width * screen_height; i = i + 8) {
+    //     c = 0x00;
+    //     for (int j = 0; j < 8; j++) {
+    //       c = c << 1;
+    //       if (pix_map[i+j]) {
+    //         c = c | mask;
+    //       }
+    //     }
+    //     buffer[index] = c;
+    //     index = index + 1;
+    //   }
+    //
+    //   int ret = write(device_file, buffer, buffer_length);
+    // }
 
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
       for (int x = 0; x < screen_width; x++) {
@@ -109,8 +115,14 @@ int main(void) {
           pix_map[xyToIndex(x, y, screen_width)] = false;
         }
       }
+      int index = 0;
+      for (int i = 0; i < buffer_length; i++) {
+        buffer[i] = 0x00;
+      }
+
+      int ret = write(device_file, buffer, buffer_length);
     }
-    frame_count++;
+    // frame_count++;
   }
 
   close(device_file);
