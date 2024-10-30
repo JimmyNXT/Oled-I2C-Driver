@@ -27,52 +27,52 @@ static int SH1106_File_Close(struct inode *device_file, struct file *instance) {
 
 static ssize_t SH1106_File_Read(struct file *filep, char *bufferp, size_t len,
                                 loff_t *offset) {
-  uint8_t temp_buffer[(SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8];
-  bool D2_bool_buffer[SH1106_LCDWIDTH][SH1106_LCDHEIGHT];
-
-for (int x = 0; x < SH1106_LCDWIDTH; x = x++) {
-    for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
-      D2_bool_buffer[x][y] = false;
-    }
-  }
-
-
-
-  uint8_t mask = 0x01;
-  uint8_t temp_c = 0x00;
-  int index = 0;
-
-  for (int y = 0; y < SH1106_LCDHEIGHT / 8; y++) {
-    for (int x = 0; x < SH1106_LCDWIDTH; x++) {
-      uint8_t c = buffer[x + (y * SH1106_LCDHEIGHT / 8)];
-
-      for (int yi = 0; yi < 8; yi++) {
-        temp_c = c & mask;
-        D2_bool_buffer[x][yi + (y * SH1106_LCDHEIGHT / 8)] = (temp_c == mask);
-        c = c >> 1;
-      }
-    }
-  }
-
-  for (int x = 0; x < SH1106_LCDWIDTH/8; x = x + 8) {
-    for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
-      uint8_t c = 0x00;
-      for (int xi = 0; xi < 8; xi++) {
-        c = c << 1;
-        if(D2_bool_buffer[xi + (x * SH1106_LCDWIDTH/8)][y]){
-          c = c | mask;
-        }
-      }
-        temp_buffer[index] = c;
-      index++;
-    }
-  }
-
-  int toCopy = min(len, SH1106_LCDWIDTH * SH1106_LCDHEIGHT /8);
-
-  printk("To copy to user %d", toCopy);
-
-  copy_to_user(bufferp, temp_buffer, toCopy);
+//   uint8_t temp_buffer[(SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8];
+//   bool D2_bool_buffer[SH1106_LCDWIDTH][SH1106_LCDHEIGHT];
+//
+// for (int x = 0; x < SH1106_LCDWIDTH; x = x++) {
+//     for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
+//       D2_bool_buffer[x][y] = false;
+//     }
+//   }
+//
+//
+//
+//   uint8_t mask = 0x01;
+//   uint8_t temp_c = 0x00;
+//   int index = 0;
+//
+//   for (int y = 0; y < SH1106_LCDHEIGHT / 8; y++) {
+//     for (int x = 0; x < SH1106_LCDWIDTH; x++) {
+//       uint8_t c = buffer[x + (y * SH1106_LCDHEIGHT / 8)];
+//
+//       for (int yi = 0; yi < 8; yi++) {
+//         temp_c = c & mask;
+//         D2_bool_buffer[x][yi + (y * SH1106_LCDHEIGHT / 8)] = (temp_c == mask);
+//         c = c >> 1;
+//       }
+//     }
+//   }
+//
+//   for (int x = 0; x < SH1106_LCDWIDTH/8; x = x + 8) {
+//     for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
+//       uint8_t c = 0x00;
+//       for (int xi = 0; xi < 8; xi++) {
+//         c = c << 1;
+//         if(D2_bool_buffer[xi + (x * SH1106_LCDWIDTH/8)][y]){
+//           c = c | mask;
+//         }
+//       }
+//         temp_buffer[index] = c;
+//       index++;
+//     }
+//   }
+//
+//   int toCopy = min(len, SH1106_LCDWIDTH * SH1106_LCDHEIGHT /8);
+//
+//   printk("To copy to user %d", toCopy);
+//
+//   copy_to_user(bufferp, temp_buffer, toCopy);
 
 
   return 0;
