@@ -36,11 +36,11 @@ static void flipBuffer(void) {
   uint8_t mask = 0x01;
   int ix = 0;
 
-  for (int y = 0; y < SH1106_LCDHEIGHT; y++) {
+  for (int y = 0; y < SH1106_LCDHEIGHT; y++) {              //Loop over all the lines
     ix = 0;
-    for (int x = 0; x < SH1106_LCDWIDTH / 8; x++) {
-      uint8_t c = buffer[x + (y * (SH1106_LCDWIDTH / 8))];
-      for (int k = 0; k < 8; k++) {
+    for (int x = 0; x < SH1106_LCDWIDTH / 8; x++) {         //loop to the start of each character in each line
+      uint8_t c = buffer[x + (y * (SH1106_LCDWIDTH / 8))];  //Get that character
+      for (int k = 0; k < 8; k++) {                         // loop over each bit in that character
         uint8_t temp_c = c & mask;
         D2_bool_buffer[ix][y] = temp_c == 0x01;
         c = c >> 1;
@@ -54,10 +54,10 @@ static void flipBuffer(void) {
     for (int j = 0; j < SH1106_LCDWIDTH; j++) {
       uint8_t c = 0x00;
       for (int k = 7; k >= 0; k--) {
+        c = c << 1;
         if (D2_bool_buffer[j][(8 * i) + k]) {
           c = c | mask;
         }
-        c = c << 1;
       }
       buffer[index] = c;
       index = index + 1;
@@ -77,7 +77,7 @@ static ssize_t SH1106_File_Write(struct file *filep, const char *bufferp,
 
   copy_from_user(buffer, bufferp, (SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8);
 
-  // flipBuffer();
+  flipBuffer();
 
   SH1106_Write_Buffer();
 
@@ -215,17 +215,15 @@ static void SH1106_Write_Buffer(void) {
   SH1106_Write(true, SH1106_SETHIGHCOLUMN | 0x0);
   SH1106_Write(true, SH1106_SETSTARTLINE | 0x0);
 
-  // int m_row = 0;
-  int m_col = 2;
   int counter = 0;
 
   static uint8_t out_buffer[SH1106_LCDWIDTH + 1] = {};
   out_buffer[0] = 0x40;
 
   for (int i = 0; i < SH1106_LCDHEIGHT / 8; i++) {
-    SH1106_Write(true, 0xB0 + i);
-    SH1106_Write(true, SH1106_SETLOWCOLUMN | (m_col & 0xf));
-    SH1106_Write(true, SH1106_SETHIGHCOLUMN | (m_col >> 4));
+    SH1106_Write(true, SH1106_SETPAGEADDRESS + i);
+    SH1106_Write(true, SH1106_SETLOWCOLUMN | 0x00);
+    SH1106_Write(true, SH1106_SETHIGHCOLUMN | 0x00);
 
     for (int j = 1; j < SH1106_LCDWIDTH + 1; j++) {
       out_buffer[j] = buffer[counter];
