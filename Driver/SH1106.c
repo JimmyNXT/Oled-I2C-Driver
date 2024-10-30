@@ -8,6 +8,7 @@
 static struct i2c_adapter *sh1106_adapter = NULL;
 static struct i2c_client *sh1106_client = NULL;
 static uint8_t buffer[(SH1106_LCDWIDTH * SH1106_LCDHEIGHT) / 8];
+static uint8_t contrast = 0xFF;
 static int majourNumber;
 static struct device *SH1106_File_Device = NULL;
 static struct class *SH1106_File_Class = NULL;
@@ -36,11 +37,12 @@ static void flipBuffer(void) {
   uint8_t mask = 0x01;
   int ix = 0;
 
-  for (int y = 0; y < SH1106_LCDHEIGHT; y++) {              //Loop over all the lines
+  for (int y = 0; y < SH1106_LCDHEIGHT; y++) { // Loop over all the lines
     ix = 0;
-    for (int x = 0; x < SH1106_LCDWIDTH / 8; x++) {         //loop to the start of each character in each line
-      uint8_t c = buffer[x + (y * (SH1106_LCDWIDTH / 8))];  //Get that character
-      for (int k = 0; k < 8; k++) {                         // loop over each bit in that character
+    for (int x = 0; x < SH1106_LCDWIDTH / 8;
+         x++) { // loop to the start of each character in each line
+      uint8_t c = buffer[x + (y * (SH1106_LCDWIDTH / 8))]; // Get that character
+      for (int k = 0; k < 8; k++) { // loop over each bit in that character
         uint8_t temp_c = c & mask;
         D2_bool_buffer[ix][y] = temp_c == 0x01;
         c = c >> 1;
@@ -114,35 +116,54 @@ static long int SH1106_ioctl(struct file *filep, unsigned cmd,
       printk("Copied screen size to user.");
     }
     break;
-  case GET_BRIGHTNESS:
-    int32_t tempScreenBrightness = 0;
-    if (copy_to_user((int *)arg, &tempScreenBrightness,
-                     sizeof(tempScreenBrightness))) {
-      printk("Failed to copy screen brightness to user.");
+  case GET_CONTRAST:
+    if (copy_to_user((uint8_t *)arg, &contrast, sizeof(contrast))) {
+      printk("Failed to copy contrast to user.");
     } else {
-      printk("Copied screen brightness of %d to user.", tempScreenBrightness);
+      printk("Copied contrast of %d to user.", contrast);
     }
     break;
-  case SET_BRIGHTNESS:
+  case SET_CONTRAST:
+    int temp_contrast = 0;
+    if (copy_from_user(&temp_contrast, (int *)arg, sizeof(temp_contrast))) {
+      printk("Failed to read contrast from user.");
+    } else {
+      printk("Recieved contrast of %d from user.", temp_contrast);
+      if (temp_contrast >= 0 &&temp_contrast <= 255) {
+        contrast = temp_contrast;
+        SH1106_Write(true, SH1106_SETCONTRAST);
+        SH1106_Write(true, contrast);
+      }
+    }
     break;
   case SET_PIXEL:
-      int x, y, colour = 0;
-      // set_pixel pix_val;
+    struct set_pixel pixelData;
+    if (copy_from_user(&pixelData, (struct set_pixel *)arg,
+                       sizeof(pixelData))) {
+      printk("Failed to pixel data from user.");
+    } else {
+      printk("Recieved the following pixel data from user: x-> %d, y-> %d, "
+             "colour-> %d",
+             pixelData.x, pixelData.y, pixelData.colour);
 
-      if ((x < 0) || (x >= SH1106_LCDWIDTH) || (y < 0) || (y >= SH1106_LCDHEIGHT))
-        return -1;
-      // x is which column
-      switch (colour) {
-      case WHITE:
-        buffer[x + (y / 8) * SH1106_LCDWIDTH] |= (1 << (y & 7));
-        break;
-      case BLACK:
-        buffer[x + (y / 8) * SH1106_LCDWIDTH] &= ~(1 << (y & 7));
-        break;
-      case INVERT:
-        buffer[x + (y / 8) * SH1106_LCDWIDTH] ^= (1 << (y & 7));
-        break;
-      }
+      // int x, y, colour = 0;
+      //
+      // if ((x < 0) || (x >= SH1106_LCDWIDTH) || (y < 0) ||
+      //     (y >= SH1106_LCDHEIGHT))
+      //   return -1;
+      // // x is which column
+      // switch (colour) {
+      // case WHITE:
+      //   buffer[x + (y / 8) * SH1106_LCDWIDTH] |= (1 << (y & 7));
+      //   break;
+      // case BLACK:
+      //   buffer[x + (y / 8) * SH1106_LCDWIDTH] &= ~(1 << (y & 7));
+      //   break;
+      // case INVERT:
+      //   buffer[x + (y / 8) * SH1106_LCDWIDTH] ^= (1 << (y & 7));
+      //   break;
+      // }
+    }
     break;
   }
 
@@ -198,7 +219,7 @@ static int SH1106_DisplayInit(void) {
   SH1106_Write(true, SH1106_SETCOMPINS);
   SH1106_Write(true, 0x12);
   SH1106_Write(true, SH1106_SETCONTRAST);
-  SH1106_Write(true, 0xCF);
+  SH1106_Write(true, contrast);
   SH1106_Write(true, SH1106_SETPRECHARGE);
   SH1106_Write(true, 0xF1);
   SH1106_Write(true, SH1106_SETVCOMDETECT);

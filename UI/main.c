@@ -37,14 +37,14 @@ int main(void) {
   buffer_length = (screen_width * screen_height) / 8;
 
   uint8_t buffer[buffer_length];
-  bool pix_map[screen_width][screen_height];
+  bool pix_map[screen_width * screen_height];
 
   Vector2 mousePosition;
   int prevMouseX = -1;
   int prevMouseY = -1;
   for (int x = 0; x < screen_width; x++) {
     for (int y = 0; y < screen_height; y++) {
-      pix_map[x][y] = false;
+      pix_map[xyToIndex(x, y, screen_width)] = false;
     }
   }
 
@@ -63,7 +63,7 @@ int main(void) {
     for (int x = 0; x < screen_width; x++) {
       for (int y = 0; y < screen_height; y++) {
         Color c;
-        if (pix_map[x][y]) {
+        if (pix_map[xyToIndex(x, y, screen_width)]) {
           c = WHITE;
         } else {
           c = BLACK;
@@ -79,7 +79,7 @@ int main(void) {
       int mousex = floor(mousePosition.x / PIXEL_SIZE);
       int mousey = floor(mousePosition.y / PIXEL_SIZE);
 
-      pix_map[mousex][mousey] = true;
+      pix_map[xyToIndex(mousex, mousey, screen_width)] = true;
 
       prevMouseX = mousex;
       prevMouseY = mousey;
@@ -88,18 +88,16 @@ int main(void) {
       frame_count = 0;
 
       int index = 0;
-      for (int i = 0; i < 8; i++) {
-        for (int j = 0; j < screen_width; j++) {
-          c = 0x00;
-          for (int k = 7; k >= 0; k--) {
-            if (pix_map[j][(8 * i) + k]) {
-              c = c | mask;
-            }
-            c = c << 1;
+      for (int i = 0; i < screen_width * screen_height; i = i + 8) {
+        c = 0x00;
+        for (int j = 0; j < 8; j++) {
+          c = c << 1;
+          if (pix_map[i+j]) {
+            c = c | mask;
           }
-          buffer[index] = c;
-          index = index + 1;
         }
+        buffer[index] = c;
+        index = index + 1;
       }
 
       int ret = write(device_file, buffer, buffer_length);
@@ -108,7 +106,7 @@ int main(void) {
     if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) {
       for (int x = 0; x < screen_width; x++) {
         for (int y = 0; y < screen_height; y++) {
-          pix_map[x][y] = false;
+          pix_map[xyToIndex(x, y, screen_width)] = false;
         }
       }
     }
