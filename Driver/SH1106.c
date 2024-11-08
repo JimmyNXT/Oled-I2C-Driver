@@ -260,16 +260,16 @@ static int SH1106_DisplayInit(void) {
 
   SH1106_Write(true, SH1106_DISPLAYOFF);
   SH1106_Write(true, SH1106_SETDISPLAYCLOCKDIV);
-  SH1106_Write(true, 0x80);
+  SH1106_Write(true, 0x80);  // + 15%
   SH1106_Write(true, SH1106_SETMULTIPLEX);
-  SH1106_Write(true, 0x3F);
+  SH1106_Write(true, 0x3F); // 63
   SH1106_Write(true, SH1106_SETDISPLAYOFFSET);
-  SH1106_Write(true, 0x00);
+  SH1106_Write(true, 0x00); // No offset
   SH1106_Write(true, SH1106_SETSTARTLINE | 0x00);
   SH1106_Write(true, SH1106_CHARGEPUMP);
-  SH1106_Write(true, 0x14);
+  SH1106_Write(true, 0x14); // 6.4v
   SH1106_Write(true, SH1106_MEMORYMODE);
-  SH1106_Write(true, 0x01);
+  SH1106_Write(true, 0x01); // Page addressing mode
   SH1106_Write(true, SH1106_SEGREMAP | 0x1);
   SH1106_Write(true, SH1106_COMSCANDEC);
   SH1106_Write(true, SH1106_SETCOMPINS);
